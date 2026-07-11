@@ -3,141 +3,389 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>RelayG — LangGraph triage agent, live demo</title>
+<title>RelayG · LangGraph triage agent, live demo</title>
 <meta name="description" content="RelayG is a production triage agent rebuilt as a LangGraph state machine with checkpointed human approvals. Run the interactive graph simulation in your browser.">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231b2430'/%3E%3Ccircle cx='9' cy='16' r='3.4' fill='%2358d68d'/%3E%3Ccircle cx='23' cy='9' r='3.4' fill='%23f0b45b'/%3E%3Ccircle cx='23' cy='23' r='3.4' fill='%2358d68d'/%3E%3Cpath d='M12 15l8-5M12 17l8 5' stroke='%237e8ba0' stroke-width='2'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230a0f0c'/%3E%3Ccircle cx='9' cy='16' r='3.2' fill='%2334d399'/%3E%3Ccircle cx='23' cy='9' r='3.2' fill='%2334d399' fill-opacity='.55'/%3E%3Ccircle cx='23' cy='23' r='3.2' fill='%2334d399'/%3E%3Cpath d='M12 15l8-5M12 17l8 5' stroke='%2334d399' stroke-opacity='.5' stroke-width='1.8'/%3E%3C/svg%3E">
 <style>
 :root{
-  --bg:#141a22;--bg2:#1b2430;--panel:#202b3a;--line:#2e3c50;
-  --text:#dfe6ef;--muted:#8d9bb0;--green:#58d68d;--amber:#f0b45b;--red:#ef7a6d;
-  --mono:"SFMono-Regular",ui-monospace,Menlo,Consolas,monospace;
+  --bg:#0a0c0e;
+  --bg-soft:#0e1114;
+  --panel:rgba(255,255,255,.028);
+  --panel-strong:rgba(255,255,255,.05);
+  --hair:rgba(255,255,255,.08);
+  --hair-strong:rgba(255,255,255,.14);
+  --text:#e8ecef;
+  --muted:#9aa5ad;
+  --faint:#6b7680;
+  --accent:#34d399;
+  --accent-dim:rgba(52,211,153,.14);
+  --accent-line:rgba(52,211,153,.35);
+  --amber:#e5b567;
+  --rose:#e58a8a;
+  --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --ease:cubic-bezier(.22,.9,.32,1);
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--text);font:16px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
-.wrap{max-width:960px;margin:0 auto;padding:0 20px}
-h1,h2,h3{font-family:var(--mono);letter-spacing:-.01em}
-a{color:var(--green)}
-header{padding:64px 0 40px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,var(--bg2),var(--bg))}
-.tag{display:inline-block;font-family:var(--mono);font-size:12px;color:var(--amber);border:1px solid var(--line);border-radius:99px;padding:3px 12px;margin-bottom:18px;background:var(--panel)}
-h1{font-size:clamp(28px,5vw,44px);line-height:1.15;margin-bottom:14px}
-h1 .g{color:var(--green)}
-.lede{color:var(--muted);max-width:620px;font-size:clamp(15px,2.2vw,18px)}
-.btns{margin-top:26px;display:flex;gap:12px;flex-wrap:wrap}
-.btn{display:inline-block;text-decoration:none;font-family:var(--mono);font-size:14px;padding:10px 18px;border-radius:8px;border:1px solid var(--line)}
-.btn.primary{background:var(--green);color:#10251a;border-color:var(--green);font-weight:600}
-.btn.ghost{color:var(--text)}
-section{padding:48px 0;border-bottom:1px solid var(--line)}
-h2{font-size:22px;margin-bottom:8px}
-.sub{color:var(--muted);font-size:14px;margin-bottom:24px}
-.honest{font-family:var(--mono);font-size:12.5px;color:var(--amber);background:rgba(240,180,91,.08);border:1px solid rgba(240,180,91,.3);border-radius:8px;padding:10px 14px;margin-bottom:24px}
-.tickets{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:24px}
-.ticket{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;cursor:pointer;text-align:left;color:var(--text);font:inherit;transition:border-color .15s}
-.ticket:hover{border-color:var(--green)}
-.ticket.active{border-color:var(--green);box-shadow:0 0 0 1px var(--green)}
-.ticket .tid{font-family:var(--mono);font-size:11px;color:var(--muted)}
-.ticket .ts{font-size:13.5px;font-weight:600;margin:2px 0}
-.ticket .amt{font-family:var(--mono);font-size:12px;color:var(--amber)}
-.graphrow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:20px}
-.node{font-family:var(--mono);font-size:13px;padding:8px 14px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--muted);transition:all .2s}
-.node.running{border-color:var(--amber);color:var(--amber);box-shadow:0 0 12px rgba(240,180,91,.25)}
-.node.done{border-color:var(--green);color:var(--green)}
-.node.paused{border-color:var(--red);color:var(--red);box-shadow:0 0 12px rgba(239,122,109,.25)}
-.arrow{color:var(--muted);font-family:var(--mono)}
-.trace{background:#0f141b;border:1px solid var(--line);border-radius:10px;padding:16px;font-family:var(--mono);font-size:13px;line-height:1.7;min-height:180px;white-space:pre-wrap;word-break:break-word}
-.trace .k{color:var(--muted)}.trace .g{color:var(--green)}.trace .a{color:var(--amber)}.trace .r{color:var(--red)}
-.approval{display:none;margin-top:16px;background:rgba(239,122,109,.06);border:1px solid rgba(239,122,109,.35);border-radius:10px;padding:16px}
+html{scroll-behavior:smooth}
+body{
+  background:var(--bg);color:var(--text);
+  font:16px/1.6 var(--sans);
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:
+    radial-gradient(900px 500px at 78% -8%, rgba(52,211,153,.09), transparent 65%),
+    radial-gradient(700px 420px at 8% 12%, rgba(52,211,153,.045), transparent 60%);
+}
+.wrap{max-width:1320px;margin:0 auto;padding:0 clamp(20px,4vw,56px);position:relative;z-index:1}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+::selection{background:rgba(52,211,153,.25)}
+
+/* ---------- nav ---------- */
+nav{
+  position:sticky;top:0;z-index:50;
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  background:rgba(10,12,14,.72);
+  border-bottom:1px solid var(--hair);
+}
+.nav-inner{display:flex;align-items:center;justify-content:space-between;height:60px}
+.wordmark{display:flex;align-items:center;gap:10px;font:600 17px/1 var(--sans);letter-spacing:-.02em;color:var(--text)}
+.wordmark:hover{text-decoration:none}
+.wordmark svg{display:block}
+.nav-links{display:flex;align-items:center;gap:clamp(14px,2.5vw,28px);font-size:14px}
+.nav-links a{color:var(--muted);transition:color .2s var(--ease)}
+.nav-links a:hover{color:var(--text);text-decoration:none}
+.nav-links a.pill{
+  color:var(--bg);background:var(--accent);padding:7px 16px;border-radius:99px;font-weight:600;
+  transition:transform .2s var(--ease),box-shadow .2s var(--ease);
+}
+.nav-links a.pill:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(52,211,153,.28)}
+.nav-links a.pill:active{transform:translateY(0)}
+
+/* ---------- hero ---------- */
+.hero{padding:clamp(56px,9vw,110px) 0 clamp(40px,6vw,72px)}
+.hero-grid{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:clamp(32px,5vw,72px);align-items:start}
+.eyebrow{
+  display:inline-flex;align-items:center;gap:8px;
+  font:500 12.5px var(--mono);color:var(--accent);
+  border:1px solid var(--accent-line);border-radius:99px;padding:5px 14px;
+  background:var(--accent-dim);margin-bottom:22px;letter-spacing:.02em;
+}
+h1{
+  font-size:clamp(34px,4.6vw,58px);line-height:1.06;letter-spacing:-.035em;
+  font-weight:700;margin-bottom:18px;
+}
+h1 .dim{color:var(--muted);font-weight:600}
+.lede{color:var(--muted);font-size:clamp(15.5px,1.6vw,18px);max-width:540px;line-height:1.65}
+.lede code{font:13.5px var(--mono);color:var(--accent);background:var(--accent-dim);padding:1px 6px;border-radius:6px}
+.btns{margin-top:30px;display:flex;gap:14px;flex-wrap:wrap}
+.btn{
+  display:inline-flex;align-items:center;gap:8px;font:600 14.5px var(--sans);
+  padding:12px 24px;border-radius:10px;cursor:pointer;text-decoration:none;
+  transition:transform .2s var(--ease),box-shadow .2s var(--ease),background .2s var(--ease);
+}
+.btn:hover{text-decoration:none;transform:translateY(-1px)}
+.btn:active{transform:translateY(1px)}
+.btn.primary{background:var(--accent);color:#06130d}
+.btn.primary:hover{box-shadow:0 8px 28px rgba(52,211,153,.3)}
+.btn.ghost{color:var(--text);background:var(--panel-strong);border:1px solid var(--hair-strong)}
+.btn.ghost:hover{background:rgba(255,255,255,.08)}
+.hero-meta{margin-top:34px;display:flex;gap:22px;flex-wrap:wrap;font:12.5px var(--mono);color:var(--faint)}
+.hero-meta span::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--accent);opacity:.6;margin-right:8px;vertical-align:1px}
+
+/* ---------- demo panel ---------- */
+.panel{
+  background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.018));
+  border:1px solid var(--hair);border-radius:18px;
+  box-shadow:0 24px 60px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.05);
+  overflow:hidden;
+}
+.panel-head{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:14px 20px;border-bottom:1px solid var(--hair);
+  font:12.5px var(--mono);color:var(--faint);
+}
+.panel-head .dots{display:flex;gap:6px}
+.panel-head .dots i{width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,.12)}
+.panel-body{padding:clamp(16px,2.4vw,26px)}
+.honest{
+  font:12px var(--mono);color:var(--muted);
+  margin-bottom:18px;line-height:1.6;
+}
+.honest a{color:var(--accent)}
+
+.tickets{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:22px}
+.ticket{
+  background:var(--panel);border:1px solid var(--hair);border-radius:12px;
+  padding:12px 14px;cursor:pointer;text-align:left;color:var(--text);font:inherit;
+  transition:transform .2s var(--ease),border-color .25s var(--ease),background .25s var(--ease);
+}
+.ticket:hover{transform:translateY(-2px);border-color:var(--hair-strong);background:var(--panel-strong)}
+.ticket:active{transform:translateY(0)}
+.ticket.active{border-color:var(--accent-line);background:var(--accent-dim)}
+.ticket .tid{font:11px var(--mono);color:var(--faint)}
+.ticket .ts{font-size:13px;font-weight:600;margin:3px 0;letter-spacing:-.01em}
+.ticket .amt{font:11.5px var(--mono);color:var(--amber);font-variant-numeric:tabular-nums}
+
+.graphrow{display:flex;align-items:center;gap:0;margin-bottom:20px;flex-wrap:wrap;row-gap:10px}
+.node{
+  font:500 12.5px var(--mono);padding:8px 16px;border-radius:99px;
+  border:1px solid var(--hair);background:var(--panel);color:var(--faint);
+  transition:color .25s var(--ease),border-color .25s var(--ease),background .25s var(--ease),box-shadow .25s var(--ease);
+  white-space:nowrap;
+}
+.node.running{border-color:var(--accent-line);color:var(--accent);background:var(--accent-dim);box-shadow:0 0 18px rgba(52,211,153,.18)}
+.node.done{border-color:var(--accent-line);color:var(--accent)}
+.node.paused{border-color:rgba(229,181,103,.45);color:var(--amber);background:rgba(229,181,103,.1);box-shadow:0 0 18px rgba(229,181,103,.16)}
+.edge{flex:1 0 18px;min-width:14px;height:1px;background:var(--hair-strong);position:relative;overflow:hidden;margin:0 2px}
+.edge::after{
+  content:"";position:absolute;inset:0;background:var(--accent);
+  transform:scaleX(0);transform-origin:left;transition:transform .45s var(--ease);
+}
+.edge.on::after{transform:scaleX(1)}
+
+.trace{
+  background:#07090b;border:1px solid var(--hair);border-radius:12px;
+  padding:16px 18px;font:12.5px/1.75 var(--mono);min-height:190px;
+  white-space:pre-wrap;word-break:break-word;font-variant-numeric:tabular-nums;
+  color:var(--text);
+}
+.trace .k{color:var(--faint)}
+.trace .g{color:var(--accent)}
+.trace .a{color:var(--amber)}
+.trace .r{color:var(--rose)}
+.trace div{animation:tin .3s var(--ease)}
+@keyframes tin{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+
+.approval{
+  display:none;margin-top:16px;border-radius:12px;padding:16px 18px;
+  background:linear-gradient(180deg,rgba(229,181,103,.09),rgba(229,181,103,.04));
+  border:1px solid rgba(229,181,103,.28);
+  animation:tin .3s var(--ease);
+}
 .approval.show{display:block}
-.approval p{font-family:var(--mono);font-size:13.5px;margin-bottom:12px}
-.approval button{font:600 14px var(--mono);padding:9px 20px;border-radius:8px;border:none;cursor:pointer;margin-right:10px}
-.approve{background:var(--green);color:#10251a}
-.deny{background:var(--red);color:#2a100c}
-svg.arch{width:100%;height:auto;display:block}
-ul.why{list-style:none;display:grid;gap:14px}
-ul.why li{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
-ul.why b{color:var(--green);font-family:var(--mono);font-size:14px;display:block;margin-bottom:4px}
-.links{display:flex;gap:16px;flex-wrap:wrap;font-family:var(--mono);font-size:14px}
-footer{padding:32px 0;color:var(--muted);font-size:13px;font-family:var(--mono)}
-@media(max-width:480px){.tickets{grid-template-columns:1fr 1fr}}
+.approval .al{font:600 11px var(--mono);color:var(--amber);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px}
+.approval p{font:13px/1.6 var(--mono);margin-bottom:14px;color:var(--text)}
+.approval .row{display:flex;gap:10px;flex-wrap:wrap}
+.approval button{
+  font:600 13.5px var(--sans);padding:9px 22px;border-radius:9px;border:none;cursor:pointer;
+  transition:transform .18s var(--ease),box-shadow .18s var(--ease);
+}
+.approval button:hover{transform:translateY(-1px)}
+.approval button:active{transform:translateY(1px)}
+.approve{background:var(--accent);color:#06130d}
+.approve:hover{box-shadow:0 6px 18px rgba(52,211,153,.28)}
+.deny{background:var(--panel-strong);color:var(--text);border:1px solid var(--hair-strong)!important}
+
+/* ---------- sections ---------- */
+section{padding:clamp(56px,8vw,96px) 0}
+.sect-head{margin-bottom:clamp(26px,4vw,40px);max-width:640px}
+.kicker{font:600 12px var(--mono);color:var(--accent);letter-spacing:.12em;text-transform:uppercase;display:block;margin-bottom:12px}
+h2{font-size:clamp(24px,3vw,34px);letter-spacing:-.025em;line-height:1.15;margin-bottom:12px;font-weight:700}
+.sub{color:var(--muted);font-size:15.5px;line-height:1.65}
+
+/* ---------- architecture ---------- */
+.arch-panel{
+  background:var(--panel);border:1px solid var(--hair);border-radius:18px;
+  padding:clamp(18px,3vw,36px);overflow-x:auto;
+}
+svg.arch{width:100%;min-width:640px;height:auto;display:block}
+
+/* ---------- why cards ---------- */
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.card{
+  background:var(--panel);border:1px solid var(--hair);border-radius:16px;
+  padding:26px 24px;transition:transform .25s var(--ease),border-color .25s var(--ease),background .25s var(--ease);
+}
+.card:hover{transform:translateY(-3px);border-color:var(--hair-strong);background:var(--panel-strong)}
+.card .ic{
+  width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;
+  background:var(--accent-dim);border:1px solid var(--accent-line);margin-bottom:18px;
+}
+.card h3{font-size:16.5px;letter-spacing:-.015em;margin-bottom:8px;font-weight:650}
+.card p{color:var(--muted);font-size:14px;line-height:1.65}
+.card code{font:12.5px var(--mono);color:var(--accent)}
+
+/* ---------- footer ---------- */
+footer{border-top:1px solid var(--hair);padding:clamp(36px,5vw,56px) 0}
+.foot-grid{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap;align-items:flex-start}
+.foot-links{display:flex;gap:clamp(16px,3vw,36px);flex-wrap:wrap;font-size:14px}
+.foot-links a{color:var(--muted);transition:color .2s var(--ease)}
+.foot-links a:hover{color:var(--text);text-decoration:none}
+.foot-note{margin-top:28px;font:12px var(--mono);color:var(--faint)}
+
+/* ---------- responsive ---------- */
+@media(max-width:960px){
+  .hero-grid{grid-template-columns:1fr}
+  .cards{grid-template-columns:1fr}
+  .lede{max-width:none}
+}
+@media(max-width:480px){
+  .tickets{grid-template-columns:1fr 1fr}
+  .nav-links{gap:12px;font-size:13px}
+  .nav-links a.pill{padding:6px 12px}
+}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+  html{scroll-behavior:auto}
+}
 </style>
 </head>
 <body>
-<header><div class="wrap">
-  <span class="tag">python · langgraph · human-in-the-loop</span>
-  <h1>RelayG<span class="g">_</span> a production triage agent rebuilt as a LangGraph state machine with checkpointed human approvals</h1>
-  <p class="lede">Classify a support ticket with an LLM, apply pure Python refund policy, and pause the graph with interrupt() when a human needs to sign off. State survives the pause via a SQLite checkpointer.</p>
-  <div class="btns">
-    <a class="btn primary" href="#demo">Run the demo</a>
-    <a class="btn ghost" href="https://github.com/royalpinto007/relayg">GitHub repo</a>
+
+<nav><div class="wrap nav-inner">
+  <a class="wordmark" href="#">
+    <svg width="22" height="22" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+      <circle cx="8" cy="16" r="4" fill="#34d399"/>
+      <circle cx="24" cy="8" r="4" fill="#34d399" fill-opacity=".5"/>
+      <circle cx="24" cy="24" r="4" fill="#34d399"/>
+      <path d="M11.5 14.2 20.5 9.6M11.5 17.8 20.5 22.4" stroke="#34d399" stroke-opacity=".45" stroke-width="1.8"/>
+    </svg>
+    RelayG
+  </a>
+  <div class="nav-links">
+    <a href="#demo">Demo</a>
+    <a href="#architecture">Architecture</a>
+    <a href="https://github.com/royalpinto007/relayg">GitHub</a>
+    <a class="pill" href="https://hire.agentpostmortem.com">Hire me</a>
+  </div>
+</div></nav>
+
+<header class="hero"><div class="wrap">
+  <div class="hero-grid">
+    <div>
+      <span class="eyebrow">python · langgraph · human-in-the-loop</span>
+      <h1>Agents that pause for humans, <span class="dim">without losing state.</span></h1>
+      <p class="lede">RelayG is a production triage agent rebuilt as a LangGraph state machine. An LLM classifies the ticket, pure Python applies refund policy, and <code>interrupt()</code> pauses the graph mid-node when a human needs to sign off. State survives the pause via a SQLite checkpointer.</p>
+      <div class="btns">
+        <a class="btn primary" href="#demo">Run a ticket</a>
+        <a class="btn ghost" href="https://github.com/royalpinto007/relayg">View source</a>
+      </div>
+      <div class="hero-meta">
+        <span>typed graph state</span>
+        <span>durable interrupts</span>
+        <span>pytest covered</span>
+      </div>
+    </div>
+
+    <div class="panel" id="demo">
+      <div class="panel-head">
+        <div class="dots" aria-hidden="true"><i></i><i></i><i></i></div>
+        <span>relayg · thread runner</span>
+      </div>
+      <div class="panel-body">
+        <p class="honest">Interactive simulation running the same policy rules in JavaScript. The real Python implementation with SQLite checkpointing is on <a href="https://github.com/royalpinto007/relayg">GitHub</a>.</p>
+
+        <div class="tickets" id="tickets"></div>
+
+        <div class="graphrow" aria-label="graph nodes">
+          <span class="node" id="n-classify">classify</span><span class="edge" id="e1"></span>
+          <span class="node" id="n-policy">policy_check</span><span class="edge" id="e2"></span>
+          <span class="node" id="n-act">act</span><span class="edge" id="e3"></span>
+          <span class="node" id="n-end">END</span>
+        </div>
+
+        <div class="trace" id="trace"><span class="k">Select a ticket above to start a run. Refunds between $50 and $200 pause for approval, exactly like LangGraph's interrupt().</span></div>
+
+        <div class="approval" id="approval">
+          <div class="al">Graph paused · awaiting human input</div>
+          <p id="approval-q"></p>
+          <div class="row">
+            <button class="approve" id="btn-approve">Approve</button>
+            <button class="deny" id="btn-deny">Deny</button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </div></header>
 
-<section id="demo"><div class="wrap">
-  <h2>Interactive demo</h2>
-  <p class="sub">Pick a ticket. Watch it flow through classify, policy_check, and act. Refunds between $50 and $200 pause the run until you approve or deny, exactly like LangGraph's interrupt().</p>
-  <div class="honest">Interactive simulation of the real graph, running the same policy rules in JavaScript. The Python implementation with SQLite checkpointing is on <a href="https://github.com/royalpinto007/relayg">GitHub</a>.</div>
-
-  <div class="tickets" id="tickets"></div>
-
-  <div class="graphrow">
-    <span class="node" id="n-classify">classify</span><span class="arrow">→</span>
-    <span class="node" id="n-policy">policy_check</span><span class="arrow">→</span>
-    <span class="node" id="n-act">act</span><span class="arrow">→</span>
-    <span class="node" id="n-end">END</span>
+<section id="architecture"><div class="wrap">
+  <div class="sect-head">
+    <span class="kicker">Architecture</span>
+    <h2>Four edges. One durable pause.</h2>
+    <p class="sub">The whole graph is four edges. The interesting part is the interrupt inside act: the run is checkpointed to SQLite and resumed later with the human verdict injected.</p>
   </div>
-
-  <div class="trace" id="trace"><span class="k">Select a ticket above to start a run.</span></div>
-
-  <div class="approval" id="approval">
-    <p id="approval-q"></p>
-    <button class="approve" id="btn-approve">Approve</button>
-    <button class="deny" id="btn-deny">Deny</button>
+  <div class="arch-panel">
+    <svg class="arch" viewBox="0 0 880 300" role="img" aria-label="RelayG graph: ticket to classify to policy_check to act to END, with an interrupt branch from act for refunds between 50 and 200 dollars">
+      <defs>
+        <marker id="m" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0L8,4L0,8z" fill="#5c6a75"/></marker>
+        <marker id="ma" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0L8,4L0,8z" fill="#34d399"/></marker>
+      </defs>
+      <style>
+        .bx{fill:rgba(255,255,255,.035);stroke:rgba(255,255,255,.12)}
+        .t{fill:#e8ecef;font:500 13px ui-monospace,Menlo,monospace;text-anchor:middle}
+        .s{fill:#9aa5ad;font:11px ui-monospace,Menlo,monospace;text-anchor:middle}
+        .l{stroke:#5c6a75;stroke-width:1.4;marker-end:url(#m);fill:none}
+        .la{stroke:#34d399;stroke-width:1.4;marker-end:url(#ma);fill:none;stroke-dasharray:4 4}
+      </style>
+      <text class="s" x="52" y="80">ticket</text>
+      <line class="l" x1="86" y1="76" x2="132" y2="76"/>
+      <rect class="bx" x="134" y="50" width="130" height="52" rx="12"/><text class="t" x="199" y="72">classify</text><text class="s" x="199" y="90">LLM or mock</text>
+      <line class="l" x1="264" y1="76" x2="312" y2="76"/>
+      <rect class="bx" x="314" y="50" width="150" height="52" rx="12"/><text class="t" x="389" y="72">policy_check</text><text class="s" x="389" y="90">pure Python rules</text>
+      <line class="l" x1="464" y1="76" x2="512" y2="76"/>
+      <rect class="bx" x="514" y="50" width="120" height="52" rx="12"/><text class="t" x="574" y="72">act</text><text class="s" x="574" y="90">mock tools</text>
+      <line class="l" x1="634" y1="76" x2="700" y2="76"/>
+      <text class="s" x="736" y="80">END</text>
+      <path class="la" d="M574 102 L574 148"/>
+      <text class="s" x="688" y="132" fill="#e5b567">refund $50 to $200</text>
+      <rect x="444" y="150" width="260" height="56" rx="12" fill="rgba(52,211,153,.06)" stroke="rgba(52,211,153,.4)"/>
+      <text class="t" x="574" y="174" fill="#34d399">interrupt()</text><text class="s" x="574" y="192">state checkpointed to SQLite</text>
+      <path class="la" d="M574 206 L574 252"/>
+      <text class="s" x="574" y="274" fill="#34d399">human resumes with Command(resume=...)</text>
+    </svg>
   </div>
 </div></section>
 
 <section><div class="wrap">
-  <h2>Architecture</h2>
-  <p class="sub">The whole graph is four edges. The interesting part is the pause inside act.</p>
-  <svg class="arch" viewBox="0 0 760 260" role="img" aria-label="RelayG graph: ticket to classify to policy_check to act to END, with an interrupt branch from act for refunds between 50 and 200 dollars">
-    <defs><marker id="m" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0L8,4L0,8z" fill="#7e8ba0"/></marker></defs>
-    <style>.b{fill:#202b3a;stroke:#2e3c50;rx:8}.t{fill:#dfe6ef;font:13px SFMono-Regular,ui-monospace,Menlo,monospace;text-anchor:middle}.s{fill:#8d9bb0;font:11px SFMono-Regular,ui-monospace,Menlo,monospace;text-anchor:middle}.l{stroke:#7e8ba0;stroke-width:1.5;marker-end:url(#m)}</style>
-    <text class="t" x="45" y="64" fill="#8d9bb0">ticket</text>
-    <line class="l" x1="80" y1="60" x2="120" y2="60"/>
-    <rect class="b" x="122" y="36" width="120" height="48" rx="8"/><text class="t" x="182" y="58">classify</text><text class="s" x="182" y="74">LLM or mock</text>
-    <line class="l" x1="242" y1="60" x2="286" y2="60"/>
-    <rect class="b" x="288" y="36" width="140" height="48" rx="8"/><text class="t" x="358" y="58">policy_check</text><text class="s" x="358" y="74">pure Python rules</text>
-    <line class="l" x1="428" y1="60" x2="472" y2="60"/>
-    <rect class="b" x="474" y="36" width="110" height="48" rx="8"/><text class="t" x="529" y="58">act</text><text class="s" x="529" y="74">mock tools</text>
-    <line class="l" x1="584" y1="60" x2="640" y2="60"/>
-    <text class="t" x="672" y="64" fill="#8d9bb0">END</text>
-    <line class="l" x1="529" y1="84" x2="529" y2="128"/>
-    <text class="s" x="620" y="112" fill="#f0b45b">refund $50 to $200</text>
-    <rect x="404" y="130" width="250" height="52" rx="8" fill="rgba(239,122,109,.07)" stroke="#ef7a6d"/>
-    <text class="t" x="529" y="152" fill="#ef7a6d">interrupt()</text><text class="s" x="529" y="170">state checkpointed to SQLite</text>
-    <line class="l" x1="529" y1="182" x2="529" y2="222"/>
-    <text class="s" x="529" y="240" fill="#58d68d">human resumes with Command(resume=...)</text>
-  </svg>
-</div></section>
-
-<section><div class="wrap">
-  <h2>Why LangGraph over a workflow tool</h2>
-  <p class="sub">RelayG is a code-first rebuild of Resolvd, the same triage agent originally built on n8n. The comparison is the point.</p>
-  <ul class="why">
-    <li><b>Typed state, checked at dev time</b>State flows through every node as a typed schema and is checked while you write the code, not discovered broken at runtime inside a workflow canvas.</li>
-    <li><b>Durable interrupts are the core model</b>interrupt() suspends mid-node, the checkpointer persists the run, and Command(resume=...) continues from the same checkpoint with the human verdict injected. In n8n you approximate this with webhooks, wait nodes, and state stuffed into a database by hand.</li>
-    <li><b>Plain Python you can unit test</b>The whole graph, including the interrupt and resume path, is covered by pytest. The honest tradeoff: you give up the visual editor and drag-and-drop integrations and take on code ownership.</li>
-  </ul>
-</div></section>
-
-<section><div class="wrap">
-  <h2>Links</h2>
-  <div class="links">
-    <a href="https://github.com/royalpinto007/relayg">github.com/royalpinto007/relayg</a>
-    <a href="https://resolvd.agentpostmortem.com">resolvd (n8n original)</a>
-    <a href="https://hire.agentpostmortem.com">hire me</a>
+  <div class="sect-head">
+    <span class="kicker">Why LangGraph</span>
+    <h2>Code-first, on purpose.</h2>
+    <p class="sub">RelayG is a rebuild of Resolvd, the same triage agent originally built on n8n. The comparison is the point.</p>
+  </div>
+  <div class="cards">
+    <div class="card">
+      <div class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="1.8"><path d="M4 7h16M4 12h10M4 17h13"/></svg></div>
+      <h3>Typed state, checked at dev time</h3>
+      <p>State flows through every node as a typed schema and is checked while you write the code, not discovered broken at runtime inside a workflow canvas.</p>
+    </div>
+    <div class="card">
+      <div class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="1.8"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg></div>
+      <h3>Durable interrupts are the core model</h3>
+      <p><code>interrupt()</code> suspends mid-node, the checkpointer persists the run, and <code>Command(resume=...)</code> continues from the same checkpoint with the human verdict injected. In n8n you approximate this with webhooks, wait nodes, and state stuffed into a database by hand.</p>
+    </div>
+    <div class="card">
+      <div class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="1.8"><path d="M20 6 9 17l-5-5"/></svg></div>
+      <h3>Plain Python you can unit test</h3>
+      <p>The whole graph, including the interrupt and resume path, is covered by pytest. The honest tradeoff: you give up the visual editor and drag-and-drop integrations and take on code ownership.</p>
+    </div>
   </div>
 </div></section>
 
-<footer><div class="wrap">RelayG · built with LangGraph · this page is a client-side simulation of the real Python graph</div></footer>
+<footer><div class="wrap">
+  <div class="foot-grid">
+    <a class="wordmark" href="#">
+      <svg width="20" height="20" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+        <circle cx="8" cy="16" r="4" fill="#34d399"/>
+        <circle cx="24" cy="8" r="4" fill="#34d399" fill-opacity=".5"/>
+        <circle cx="24" cy="24" r="4" fill="#34d399"/>
+        <path d="M11.5 14.2 20.5 9.6M11.5 17.8 20.5 22.4" stroke="#34d399" stroke-opacity=".45" stroke-width="1.8"/>
+      </svg>
+      RelayG
+    </a>
+    <div class="foot-links">
+      <a href="https://github.com/royalpinto007/relayg">GitHub</a>
+      <a href="https://resolvd.agentpostmortem.com">Resolvd (n8n original)</a>
+      <a href="https://hire.agentpostmortem.com">Hire me</a>
+    </div>
+  </div>
+  <p class="foot-note">RelayG · built with LangGraph · this page is a client-side simulation of the real Python graph</p>
+</div></footer>
 
 <script>
 "use strict";
@@ -179,13 +427,18 @@ const TICKETS = [
 ];
 const $ = id => document.getElementById(id);
 const nodes = {classify:$("n-classify"), policy:$("n-policy"), act:$("n-act"), end:$("n-end")};
+const edges = {e1:$("e1"), e2:$("e2"), e3:$("e3")};
 const trace = $("trace"), approval = $("approval");
 let runId = 0, pending = null;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 function line(html){ const d = document.createElement("div"); d.innerHTML = html; trace.appendChild(d); }
 function esc(s){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;"); }
-function resetNodes(){ for (const n of Object.values(nodes)) n.className = "node"; }
+function resetNodes(){
+  for (const n of Object.values(nodes)) n.className = "node";
+  for (const e of Object.values(edges)) e.className = "edge";
+}
 function setNode(n, cls){ nodes[n].className = "node " + cls; }
+function setEdge(e){ edges[e].className = "edge on"; }
 
 const grid = $("tickets");
 TICKETS.forEach((t,i) => {
@@ -210,12 +463,12 @@ async function run(t, btn){
 
   setNode("classify","running"); await sleep(650); if (id !== runId) return;
   const c = mockClassify(t.subject, t.body);
-  setNode("classify","done");
+  setNode("classify","done"); setEdge("e1");
   line(`<span class="g">classify</span>     -> intent=${c.intent} urgency=${c.urgency} refund_amount=${c.refund_amount}`);
 
   setNode("policy","running"); await sleep(650); if (id !== runId) return;
   const [decision, reason] = decide(c);
-  setNode("policy","done");
+  setNode("policy","done"); setEdge("e2");
   line(`<span class="g">policy_check</span> -> ${decision}: ${esc(reason)}`);
 
   setNode("act","running"); await sleep(650); if (id !== runId) return;
@@ -249,7 +502,7 @@ function finish(id, t, decision, amount, reason){
 
 function emit(acts){
   for (const a of acts) line(`<span class="a">act</span>          -> ${esc(a)}`);
-  setNode("act","done"); setNode("end","done");
+  setNode("act","done"); setEdge("e3"); setNode("end","done");
   line(`<span class="k">run complete; actions appended to audit.jsonl</span>`);
 }
 
