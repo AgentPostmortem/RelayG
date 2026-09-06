@@ -115,6 +115,8 @@ def act(state: TicketState) -> dict:
                 "reason": state["policy_reason"],
             }
         )
+        if not isinstance(verdict, dict):
+            verdict = {}
         approved = bool(verdict.get("approved"))
         note = str(verdict.get("note", ""))
         update["approved"] = approved
