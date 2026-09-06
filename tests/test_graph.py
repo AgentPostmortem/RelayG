@@ -88,6 +88,22 @@ def test_mid_refund_denied_sends_decline_reply() -> None:
     assert "declined" in resumed["actions"][0]["message"]
 
 
+def test_mid_refund_malformed_verdict_fails_closed() -> None:
+    verdict = "yes"
+    graph = build_graph(_saver())
+    config = {"configurable": {"thread_id": "malformed-verdict"}}
+    graph.invoke(
+        {"ticket_id": "malformed-verdict", "subject": "Refund", "body": "Refund $75 please."},
+        config,
+    )
+
+    resumed = graph.invoke(Command(resume=verdict), config)
+
+    assert resumed["approved"] is False
+    assert [a["action"] for a in resumed["actions"]] == ["send_reply"]
+    assert "declined" in resumed["actions"][0]["message"]
+
+
 def test_actions_are_written_to_audit_log() -> None:
     graph = build_graph(_saver())
     config = {"configurable": {"thread_id": "t6"}}
