@@ -42,6 +42,15 @@ def test_question_gets_reply_only() -> None:
     assert [a["action"] for a in result["actions"]] == ["send_reply"]
 
 
+def test_missing_subject_and_body_classifies_as_other() -> None:
+    graph = build_graph(_saver())
+    config = {"configurable": {"thread_id": "missing-fields"}}
+    result = graph.invoke({"ticket_id": "missing-fields"}, config)
+
+    assert result["classification"].intent == "other"
+    assert result["policy_decision"] == "no_refund"
+
+
 def test_large_refund_escalates() -> None:
     graph = build_graph(_saver())
     config = {"configurable": {"thread_id": "t3"}}
