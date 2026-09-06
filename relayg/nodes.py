@@ -76,7 +76,7 @@ def get_classifier() -> Classifier:
 def classify(state: TicketState) -> dict:
     """Node: classify intent, urgency, and any requested refund amount."""
     classifier = get_classifier()
-    classification = classifier(state["subject"], state["body"])
+    classification = classifier(state.get("subject", ""), state.get("body", ""))
     return {"classification": classification}
 
 
